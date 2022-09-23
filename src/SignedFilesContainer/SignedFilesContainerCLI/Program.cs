@@ -9,8 +9,6 @@ namespace SignedFilesContainerCLI
     {
         static int Main(string[] args)
         {
-            //Console.WriteLine($"{nameof(SignedFilesContainerCLI)} {Assembly.GetExecutingAssembly().GetName().Version}");
-
             var cliApp = new CommandApp();
 
             cliApp.Configure(config =>
