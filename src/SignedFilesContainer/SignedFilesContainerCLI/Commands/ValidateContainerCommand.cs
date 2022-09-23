@@ -9,9 +9,12 @@ using System.Threading.Tasks;
 namespace SignedFilesContainerCLI.Commands
 {
     /// <summary>
-    /// Generate self signed certificate.
+    /// Validates signed container (folder or zip file) against the public key.
     /// </summary>
-    internal class GenerateCertCommand : Command<GenerateCertCommand.Settings>
+    /// <remarks>
+    /// input: container (folder or zip file), public key, output: valid/invalid
+    /// </remarks>
+    internal class ValidateContainerCommand : Command<ValidateContainerCommand.Settings>
     {
         public class Settings : CommandSettings
         {

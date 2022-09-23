@@ -9,12 +9,15 @@ namespace SignedFilesContainerCLI
     {
         static int Main(string[] args)
         {
-            Console.WriteLine($"{nameof(SignedFilesContainerCLI)} {Assembly.GetExecutingAssembly().GetName().Version}");
+            //Console.WriteLine($"{nameof(SignedFilesContainerCLI)} {Assembly.GetExecutingAssembly().GetName().Version}");
 
-            var x = new Spectre.Console.Calendar(DateTime.Now);
-            var cliApp = new CommandApp<GenerateCertCommand>();
+            var cliApp = new CommandApp();
+
             cliApp.Configure(config =>
             {
+                config.AddCommand<GenerateCertificateCommand>("create-certificate");
+                config.AddCommand<CreateContainerCommand>("create-container");
+                config.AddCommand<ValidateContainerCommand>("validate");
             });
 
             return cliApp.Run(args);
