@@ -3,11 +3,18 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32901.215
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignedFilesContainer", "SignedFilesContainer\SignedFilesContainer.csproj", "{9049AEB0-0212-42D9-99B2-70FADE9F869D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SignedFilesContainer", "SignedFilesContainer\SignedFilesContainer.csproj", "{9049AEB0-0212-42D9-99B2-70FADE9F869D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignedFilesContainerCLI", "SignedFilesContainerCLI\SignedFilesContainerCLI.csproj", "{CAA1DDC1-F603-498F-858C-A7FEBA7FD646}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SignedFilesContainerCLI", "SignedFilesContainerCLI\SignedFilesContainerCLI.csproj", "{CAA1DDC1-F603-498F-858C-A7FEBA7FD646}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignedFilesContainerTests", "SignedFilesContainerTests\SignedFilesContainerTests.csproj", "{5D8B2731-1FA9-4497-8142-03C2C5591255}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SignedFilesContainerTests", "SignedFilesContainerTests\SignedFilesContainerTests.csproj", "{5D8B2731-1FA9-4497-8142-03C2C5591255}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionFiles", "SolutionFiles", "{513128B0-FE0A-4FB2-8254-70CCDAD63A1B}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\.gitignore = ..\..\.gitignore
+		..\..\LICENSE = ..\..\LICENSE
+		..\..\README.md = ..\..\README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
