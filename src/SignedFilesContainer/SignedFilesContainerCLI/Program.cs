@@ -1,7 +1,5 @@
 ﻿using SignedFilesContainerCLI.Commands;
 using Spectre.Console.Cli; // don't uprade to a newer version of Spectre.Console otherwise you'll get an error here. https://www.nuget.org/packages?q=Spectre.Console.Cli is in preview 0.8
-using System;
-using System.Reflection;
 
 namespace SignedFilesContainerCLI
 {
@@ -15,7 +13,7 @@ namespace SignedFilesContainerCLI
             {
                 config.AddCommand<GenerateCertificateCommand>("create-certificate");
                 config.AddCommand<CreateContainerCommand>("create-container");
-                config.AddCommand<ValidateContainerCommand>("validate");
+                config.AddCommand<ValidateContainerCommand>("validate-container");
             });
 
             return cliApp.Run(args);

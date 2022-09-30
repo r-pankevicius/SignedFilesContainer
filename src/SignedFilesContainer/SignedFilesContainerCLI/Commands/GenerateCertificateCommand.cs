@@ -38,7 +38,6 @@ namespace SignedFilesContainerCLI.Commands
             [Description("Overwrite existing.")]
             [CommandOption("--overwrite")]
             public bool Overwrite { get; set; }
-
         }
 
         public override int Execute([NotNull] CommandContext context, [NotNull] Settings settings)
