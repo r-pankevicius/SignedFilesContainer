@@ -100,9 +100,6 @@ namespace SignedFilesContainerCLI.Commands
             File.WriteAllBytes(outputCertificateFilePath, certBytes);
             // Dump it on Windows: certutil -dump .\PrivateKey.pem.pfx
 
-            // On windows, with NuGet package System.Windows.Extensions
-            // X509Certificate2UI.DisplayCertificate(certificateToExport);
-
             RSA? rsaPublicKey = certificateToExport.PublicKey.GetRSAPublicKey();
             if (rsaPublicKey == null)
                 throw new InvalidOperationException("GetRSAPublicKey() failed");
@@ -158,7 +155,6 @@ namespace SignedFilesContainerCLI.Commands
             var certificate = request.CreateSelfSigned(
                 notBefore: new DateTimeOffset(DateTime.UtcNow.AddDays(-1)),
                 notAfter: new DateTimeOffset(DateTime.UtcNow.AddYears(10)));
-            // certificate.FriendlyName = certificateName; // FriendlyName used only under Windows
 
             byte[] bytes = certificate.Export(X509ContentType.Pfx, password);
             return new X509Certificate2(bytes, password, X509KeyStorageFlags.Exportable);
