@@ -66,7 +66,18 @@ namespace SignedFilesContainerCLI.Commands
                 Directory.CreateDirectory(settings.OutputFolder);
             }
 
+            string metainfoFolder = Path.Combine(settings.OutputFolder, "META-INFO");
+            if (!Directory.Exists(metainfoFolder))
+                Directory.CreateDirectory(metainfoFolder);
+
+            string metainfoFile = Path.Combine(metainfoFolder, "SignedFilesContainer.FileList.xml");
+            if (File.Exists(metainfoFile))
+                File.Delete(metainfoFile);
+
             // IMPL-IT
+
+            AnsiConsole.MarkupLine($"Created a signed container [green]{settings.OutputFolder}[/].");
+            AnsiConsole.MarkupLine($"[magenta]You'll need a public key to validate it.[/] I hope you remember where it is.");
 
             return 0;
         }
