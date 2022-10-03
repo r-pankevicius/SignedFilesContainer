@@ -77,12 +77,39 @@ namespace SignedFilesContainerCLI.Commands
             CopyDirectory(settings.InputFolder, settings.OutputFolder, recursive: true);
             Directory.CreateDirectory(metainfoFolder);
 
-            //Directory.Co
+            var fileHashesDictionary = GetFileHashes(settings.OutputFolder);
 
             AnsiConsole.MarkupLine($"Created a signed container [green]{settings.OutputFolder}[/].");
             AnsiConsole.MarkupLine($"[magenta]You'll need a public key to validate it.[/] I hope you remember where it is.");
 
             return 0;
+        }
+
+        private static Dictionary<string, string> GetFileHashes(string rootDir) =>
+            GetFileHashes(rootDir, rootDir);
+
+        private static Dictionary<string, string> GetFileHashes(string rootDir, string currentDir)
+        {
+            var dir = new DirectoryInfo(currentDir);
+
+            if (!dir.Exists)
+                throw new DirectoryNotFoundException($"Directory not found: {dir.FullName}");
+
+            var result = new Dictionary<string, string>();
+
+            foreach (FileInfo file in dir.GetFiles())
+            {
+                Console.WriteLine(file.FullName);
+            }
+
+            DirectoryInfo[] dirs = dir.GetDirectories();
+            foreach (DirectoryInfo subDir in dirs)
+            {
+                string subdirectory= Path.Combine(currentDir, subDir.Name);
+                GetFileHashes(rootDir, subdirectory);
+            }
+
+            return result;
         }
 
         /// <summary>
