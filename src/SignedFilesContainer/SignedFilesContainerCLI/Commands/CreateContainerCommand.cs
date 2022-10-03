@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -79,6 +80,10 @@ namespace SignedFilesContainerCLI.Commands
 
             var fileHashesDictionary = GetFileHashes(settings.OutputFolder);
 
+            // TMP
+            foreach (var kv in fileHashesDictionary)
+                Console.WriteLine($"{kv.Key}={kv.Value}");
+
             AnsiConsole.MarkupLine($"Created a signed container [green]{settings.OutputFolder}[/].");
             AnsiConsole.MarkupLine($"[magenta]You'll need a public key to validate it.[/] I hope you remember where it is.");
 
@@ -90,26 +95,58 @@ namespace SignedFilesContainerCLI.Commands
 
         private static Dictionary<string, string> GetFileHashes(string rootDir, string currentDir)
         {
+            var result = new Dictionary<string, string>();
+            GetFileHashes(result, rootDir, currentDir);
+            return result;
+        }
+
+        private static void GetFileHashes(Dictionary<string, string> result, string rootDir, string currentDir)
+        {
             var dir = new DirectoryInfo(currentDir);
 
             if (!dir.Exists)
                 throw new DirectoryNotFoundException($"Directory not found: {dir.FullName}");
-
-            var result = new Dictionary<string, string>();
-
+            
             foreach (FileInfo file in dir.GetFiles())
             {
-                Console.WriteLine(file.FullName);
+                string relativePath = GetRelativePathFrom(rootDir, file.FullName);
+                result[relativePath] = GetSHA384FileHash(file.FullName);
             }
 
             DirectoryInfo[] dirs = dir.GetDirectories();
             foreach (DirectoryInfo subDir in dirs)
             {
-                string subdirectory= Path.Combine(currentDir, subDir.Name);
-                GetFileHashes(rootDir, subdirectory);
+                string subdirectory = Path.Combine(currentDir, subDir.Name);
+                GetFileHashes(result, rootDir, subdirectory);
             }
+        }
 
-            return result;
+        private static string GetRelativePathFrom(string rootDir, string fullName)
+        {
+            string fullRootDir = Path.GetFullPath(rootDir);
+            string fullRootName = Path.GetFullPath(fullName);
+            if (fullRootName.Equals(fullRootDir))
+                return "";
+
+            if (!fullRootName.StartsWith(fullRootDir))
+                throw new InvalidOperationException($"File or directory '${fullName}' was expected to be under directory `{rootDir}`.");
+
+            return fullRootName[(fullRootDir.Length + 1)..^0];
+        }
+
+        private static string GetSHA384FileHash(string pathToFile)
+        {
+            if (!File.Exists(pathToFile))
+                throw new FileNotFoundException($"File not found: `{pathToFile}`.");
+
+            byte[] fileBytes = File.ReadAllBytes(pathToFile);
+
+            // SHA384Managed is obsolete but RTFM means read that f***ing manual, and the manual is really f***ing:
+            // https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.sha384.create?view=net-6.0
+            SHA384 shaM = new SHA384Managed();
+            byte[] hashBytes = shaM.ComputeHash(fileBytes);
+            string hash = $"sha384:{Convert.ToBase64String(hashBytes)}";
+            return hash;
         }
 
         /// <summary>
