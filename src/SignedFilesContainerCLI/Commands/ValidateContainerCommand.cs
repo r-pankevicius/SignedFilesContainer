@@ -1,10 +1,17 @@
-﻿using Spectre.Console.Cli;
+﻿using Spectre.Console;
+using Spectre.Console.Cli;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Security.Cryptography.Xml;
+using System.Xml;
 
 namespace SignedFilesContainerCLI.Commands
 {
@@ -18,11 +25,106 @@ namespace SignedFilesContainerCLI.Commands
     {
         public class Settings : CommandSettings
         {
+            [Description("Input folder.")]
+            [CommandArgument(0, "<inputFolder>")]
+            public string InputFolder { get; init; } = "";
+
+            [Description("Path to the public key file.")]
+            [CommandOption("--public-key-file")]
+            public string PublicKey { get; init; } = "";
         }
 
         public override int Execute([NotNull] CommandContext context, [NotNull] Settings settings)
         {
+            if (!Directory.Exists(settings.InputFolder))
+            {
+                AnsiConsole.MarkupLine($"Input directory [red]{settings.InputFolder}[/] doesn't exist.");
+                return 1;
+            }
+
+            string fileListXmlPath = Path.Combine(settings.InputFolder,
+                CreateContainerCommand.MetaInfoFolderName, CreateContainerCommand.FileListFileName);
+            if (!File.Exists(fileListXmlPath))
+            {
+                AnsiConsole.MarkupLine($"File listing metainfo file [red]{fileListXmlPath}[/] doesn't exist.");
+                return 2;
+            }
+
+            if (!File.Exists(settings.PublicKey))
+            {
+                AnsiConsole.MarkupLine($"Public key file [red]{settings.PublicKey}[/] doesn't exist.");
+                return 3;
+            }
+
+            string publicKeyString = File.ReadAllText(settings.PublicKey);
+            byte[] publicKeyBytes = Convert.FromBase64String(publicKeyString);
+
+            var publicKey = PublicKey.CreateFromSubjectPublicKeyInfo(publicKeyBytes, out int bytesRead);
+            RSA? rsaPublicKey = publicKey.GetRSAPublicKey();
+            if (rsaPublicKey == null)
+                throw new InvalidOperationException("GetRSAPublicKey() failed");
+
+            var signedXmlDoc = new XmlDocument
+            {
+                PreserveWhitespace = true
+            };
+
+            signedXmlDoc.Load(fileListXmlPath);
+            
+            // Verify the signature of the signed file list XML.
+            bool fileListIsValid = VerifyXml(signedXmlDoc, rsaPublicKey);
+            if (fileListIsValid)
+            {
+                AnsiConsole.MarkupLine($"File list file signature is [green]valid[/].");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"File list file signature is [red]INVALID[/].");
+                return 5;
+            }
+
+            // TODO: verify all files sha and the fact that only these files are in container
+
             return 0;
+        }
+
+        // Verify the signature of an XML file against an asymmetric
+        // algorithm and return the result.
+        public static bool VerifyXml(XmlDocument xmlDoc, RSA key)
+        {
+            // Check arguments.
+            if (xmlDoc == null)
+                throw new ArgumentException(null, nameof(xmlDoc));
+            if (key == null)
+                throw new ArgumentException(null, nameof(key));
+
+            // Create a new SignedXml object and pass it
+            // the XML document class.
+            SignedXml signedXml = new(xmlDoc);
+
+            // Find the "Signature" node and create a new
+            // XmlNodeList object.
+            XmlNodeList nodeList = xmlDoc.GetElementsByTagName("Signature");
+
+            // Throw an exception if no signature was found.
+            if (nodeList.Count <= 0)
+            {
+                throw new CryptographicException("Verification failed: No Signature was found in the document.");
+            }
+
+            // This example only supports one signature for
+            // the entire XML document.  Throw an exception
+            // if more than one signature was found.
+            if (nodeList.Count >= 2)
+            {
+                throw new CryptographicException("Verification failed: More that one signature was found for the document.");
+            }
+
+            // Load the first <signature> node.
+            signedXml.LoadXml((XmlElement)nodeList[0]);
+
+            // Check the signature and return the result.
+            return signedXml.CheckSignature(key);
         }
     }
 }

@@ -26,8 +26,8 @@ namespace SignedFilesContainerCLI.Commands
     /// </remarks>
     internal class CreateContainerCommand : Command<CreateContainerCommand.Settings>
     {
-        private const string MetaInfoFolderName = "META-INFO";
-        private const string FileListFileName = "com.github.SignedFilesContainer.FileList.xml";
+        internal const string MetaInfoFolderName = "META-INFO";
+        internal const string FileListFileName = "com.github.SignedFilesContainer.FileList.xml";
 
         public class Settings : CommandSettings
         {
