@@ -71,16 +71,12 @@ namespace SignedFilesContainer
                 PreserveWhitespace = true
             };
 
-            //using var stringReader = new StringReader(inputXml);
-            //var xmlReaderSettings = new XmlReaderSettings
-            //{
-            //    DtdProcessing = DtdProcessing.Parse
-            //};
-            //using var xmlReader = XmlReader.Create(stringReader, xmlReaderSettings);
-            //originalXmlDoc.Load(xmlReader);
+            // TODO: what the magic? https://stackoverflow.com/questions/6784799/what-is-this-char-65279
+            if (inputXml[0] == 65279)
+            {
+                inputXml = inputXml[1..^0];
+            }
 
-            // hack for Error: Data at the root level is invalid. Line 1, position 1.
-            inputXml = inputXml.Replace("﻿<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n", "");
             originalXmlDoc.LoadXml(inputXml);
 
             // Add the signing RSA key to the SignedXml object
