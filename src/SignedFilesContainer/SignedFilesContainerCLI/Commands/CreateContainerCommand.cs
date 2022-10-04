@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
@@ -41,6 +42,10 @@ namespace SignedFilesContainerCLI.Commands
             [Description("Path to the certificate file.")]
             [CommandOption("--certificate")]
             public string Certificate { get; init; } = "";
+
+            [Description("Certificate password.")]
+            [CommandOption("--password")]
+            public string Password { get; init; } = "";
 
             [Description("Overwrite existing container.")]
             [CommandOption("--overwrite")]
@@ -103,7 +108,10 @@ namespace SignedFilesContainerCLI.Commands
 
             serializer.Serialize(streamWriter, fileList);
             string fileListXml = Encoding.UTF8.GetString(memoryStream.ToArray());
-            Console.WriteLine(fileListXml);
+
+            var certificate = new X509Certificate2(File.ReadAllBytes(settings.Certificate), settings.Password);
+            string signedXml = CertificateHelpers.SignXml(fileListXml, certificate);
+            File.WriteAllText(fileListFile, signedXml);
 
             AnsiConsole.MarkupLine($"Created a signed container [green]{settings.OutputFolder}[/].");
             AnsiConsole.MarkupLine($"[magenta]You'll need a public key to validate it.[/] I hope you remember where it is.");

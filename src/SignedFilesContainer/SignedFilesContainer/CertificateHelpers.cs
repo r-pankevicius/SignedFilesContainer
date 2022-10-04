@@ -1,7 +1,11 @@
 ﻿using System;
+using System.IO;
 using System.Net;
+using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography.Xml;
+using System.Xml;
 
 namespace SignedFilesContainer
 {
@@ -58,6 +62,58 @@ namespace SignedFilesContainer
 
             byte[] bytes = certificate.Export(X509ContentType.Pfx, password);
             return new X509Certificate2(bytes, password, X509KeyStorageFlags.Exportable);
+        }
+
+        public static string SignXml(string inputXml, X509Certificate2 certificate)
+        {
+            var originalXmlDoc = new XmlDocument
+            {
+                PreserveWhitespace = true
+            };
+
+            //using var stringReader = new StringReader(inputXml);
+            //var xmlReaderSettings = new XmlReaderSettings
+            //{
+            //    DtdProcessing = DtdProcessing.Parse
+            //};
+            //using var xmlReader = XmlReader.Create(stringReader, xmlReaderSettings);
+            //originalXmlDoc.Load(xmlReader);
+
+            // hack for Error: Data at the root level is invalid. Line 1, position 1.
+            inputXml = inputXml.Replace("﻿<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n", "");
+            originalXmlDoc.LoadXml(inputXml);
+
+            // Add the signing RSA key to the SignedXml object
+            SignedXml signedXml = new(originalXmlDoc)
+            {
+                SigningKey = certificate.GetRSAPrivateKey()
+            };
+
+            // Create a reference to be signed.
+            Reference reference = new()
+            {
+                Uri = ""
+            };
+
+            // Add an XmlDsigEnvelopedSignatureTransform object to the Reference object.
+            // A transformation allows the verifier to represent the XML data in the identical manner that the signer used.
+            // XML data can be represented in different ways, so this step is vital to verification.
+            XmlDsigEnvelopedSignatureTransform env = new();
+            reference.AddTransform(env);
+
+            // Add the Reference object to the SignedXml object.
+            signedXml.AddReference(reference);
+
+            // Compute the signature
+            signedXml.ComputeSignature();
+
+            // Retrieve the XML representation of the signature (a <Signature> element) and save it to a new XmlElement object.
+            XmlElement xmlDigitalSignature = signedXml.GetXml();
+
+            // Append the element to the XmlDocument object.
+            originalXmlDoc.DocumentElement!.AppendChild(originalXmlDoc.ImportNode(xmlDigitalSignature, deep: true));
+
+            return originalXmlDoc.OuterXml;
         }
     }
 }
