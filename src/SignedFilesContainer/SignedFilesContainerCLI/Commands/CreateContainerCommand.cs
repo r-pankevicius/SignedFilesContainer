@@ -1,4 +1,5 @@
-﻿using Spectre.Console;
+﻿using SignedFilesContainer;
+using Spectre.Console;
 using Spectre.Console.Cli;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,9 @@ namespace SignedFilesContainerCLI.Commands
     /// </remarks>
     internal class CreateContainerCommand : Command<CreateContainerCommand.Settings>
     {
+        private const string MetaInfoFolderName = "META-INFO";
+        private const string FileListFileName = "com.github.SignedFilesContainer.FileList.xml";
+
         public class Settings : CommandSettings
         {
             [Description("Input folder.")]
@@ -67,22 +71,22 @@ namespace SignedFilesContainerCLI.Commands
                 Directory.CreateDirectory(settings.OutputFolder);
             }
 
-            string metainfoFolder = Path.Combine(settings.OutputFolder, "META-INFO");
+            string metainfoFolder = Path.Combine(settings.OutputFolder, MetaInfoFolderName);
             if (!Directory.Exists(metainfoFolder))
                 Directory.CreateDirectory(metainfoFolder);
 
-            string metainfoFile = Path.Combine(metainfoFolder, "SignedFilesContainer.FileList.xml");
-            if (File.Exists(metainfoFile))
-                File.Delete(metainfoFile);
+            string fileListFile = Path.Combine(metainfoFolder, FileListFileName);
+            if (File.Exists(fileListFile))
+                File.Delete(fileListFile);
 
             CopyDirectory(settings.InputFolder, settings.OutputFolder, recursive: true);
             Directory.CreateDirectory(metainfoFolder);
 
-            var fileHashesDictionary = GetFileHashes(settings.OutputFolder);
+            var fileEntries = GetFileEntries(settings.OutputFolder);
 
             // TMP
-            foreach (var kv in fileHashesDictionary)
-                Console.WriteLine($"{kv.Key}={kv.Value}");
+            foreach (var fe in fileEntries)
+                Console.WriteLine($"{fe.LocalPath} {fe.Length} {fe.HashString}");
 
             AnsiConsole.MarkupLine($"Created a signed container [green]{settings.OutputFolder}[/].");
             AnsiConsole.MarkupLine($"[magenta]You'll need a public key to validate it.[/] I hope you remember where it is.");
@@ -90,27 +94,33 @@ namespace SignedFilesContainerCLI.Commands
             return 0;
         }
 
-        private static Dictionary<string, string> GetFileHashes(string rootDir) =>
-            GetFileHashes(rootDir, rootDir);
+        private static IEnumerable<FileEntry> GetFileEntries(string rootDir) =>
+            GetFileEntries(rootDir, rootDir);
 
-        private static Dictionary<string, string> GetFileHashes(string rootDir, string currentDir)
+        private static IEnumerable<FileEntry> GetFileEntries(string rootDir, string currentDir)
         {
-            var result = new Dictionary<string, string>();
+            var result = new List<FileEntry>();
             GetFileHashes(result, rootDir, currentDir);
             return result;
         }
 
-        private static void GetFileHashes(Dictionary<string, string> result, string rootDir, string currentDir)
+        private static void GetFileHashes(List<FileEntry> result, string rootDir, string currentDir)
         {
             var dir = new DirectoryInfo(currentDir);
 
             if (!dir.Exists)
                 throw new DirectoryNotFoundException($"Directory not found: {dir.FullName}");
             
-            foreach (FileInfo file in dir.GetFiles())
+            foreach (FileInfo fi in dir.GetFiles())
             {
-                string relativePath = GetRelativePathFrom(rootDir, file.FullName);
-                result[relativePath] = GetSHA384FileHash(file.FullName);
+                string hash = GetSHA384FileHash(fi.FullName);
+                string relativePath = GetRelativePathFrom(rootDir, fi.FullName);
+                result.Add(new FileEntry
+                {
+                    LocalPath = ChangeToUnixPathSeparators(relativePath),
+                    Length = fi.Length,
+                    HashString = $"sha384:{hash}"
+                });
             }
 
             DirectoryInfo[] dirs = dir.GetDirectories();
@@ -134,6 +144,9 @@ namespace SignedFilesContainerCLI.Commands
             return fullRootName[(fullRootDir.Length + 1)..^0];
         }
 
+        private static string ChangeToUnixPathSeparators(string localPath) =>
+            localPath.Replace('\\', '/');
+
         private static string GetSHA384FileHash(string pathToFile)
         {
             if (!File.Exists(pathToFile))
@@ -145,8 +158,7 @@ namespace SignedFilesContainerCLI.Commands
             // https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.sha384.create?view=net-6.0
             SHA384 shaM = new SHA384Managed();
             byte[] hashBytes = shaM.ComputeHash(fileBytes);
-            string hash = $"sha384:{Convert.ToBase64String(hashBytes)}";
-            return hash;
+            return Convert.ToBase64String(hashBytes);
         }
 
         /// <summary>
