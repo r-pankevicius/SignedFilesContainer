@@ -4,12 +4,16 @@ using Spectre.Console.Cli;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
+using System.Xml.Serialization;
 
 namespace SignedFilesContainerCLI.Commands
 {
@@ -82,11 +86,24 @@ namespace SignedFilesContainerCLI.Commands
             CopyDirectory(settings.InputFolder, settings.OutputFolder, recursive: true);
             Directory.CreateDirectory(metainfoFolder);
 
-            var fileEntries = GetFileEntries(settings.OutputFolder);
+            var fileList = new FileList
+            {
+                Files = GetFileEntries(settings.OutputFolder).ToList()
+            };
 
-            // TMP
-            foreach (var fe in fileEntries)
-                Console.WriteLine($"{fe.LocalPath} {fe.Length} {fe.HashString}");
+            // TODO: extract
+            var serializer = new XmlSerializer(typeof(FileList));
+
+            using var memoryStream = new MemoryStream();
+            var streamWriter = XmlWriter.Create(memoryStream, new()
+            {
+                Encoding = Encoding.UTF8,
+                Indent = true
+            });
+
+            serializer.Serialize(streamWriter, fileList);
+            string fileListXml = Encoding.UTF8.GetString(memoryStream.ToArray());
+            Console.WriteLine(fileListXml);
 
             AnsiConsole.MarkupLine($"Created a signed container [green]{settings.OutputFolder}[/].");
             AnsiConsole.MarkupLine($"[magenta]You'll need a public key to validate it.[/] I hope you remember where it is.");

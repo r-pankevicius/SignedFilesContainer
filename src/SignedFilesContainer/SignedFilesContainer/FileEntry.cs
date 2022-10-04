@@ -1,5 +1,15 @@
-﻿namespace SignedFilesContainer
+﻿using System.Collections.Generic;
+
+namespace SignedFilesContainer
 {
+    /// <summary>
+    /// Container contents.
+    /// </summary>
+    public class FileList
+    {
+        public List<FileEntry> Files { get; set; } = new();
+    }
+
     /// <summary>
     /// File entry in the container.
     /// </summary>
