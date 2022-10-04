@@ -11,6 +11,7 @@ namespace SignedFilesContainerCLI
 
             cliApp.Configure(config =>
             {
+                config.PropagateExceptions();
                 config.AddCommand<GenerateCertificateCommand>("create-certificate");
                 config.AddCommand<CreateContainerCommand>("create-container");
                 config.AddCommand<ValidateContainerCommand>("validate-container");
