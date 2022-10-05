@@ -144,7 +144,7 @@ namespace SignedFilesContainerCLI.Commands
                 {
                     LocalPath = ChangeToUnixPathSeparators(relativePath),
                     Length = fi.Length,
-                    HashString = $"sha384:{hash}"
+                    SHA384 = hash
                 });
             }
 

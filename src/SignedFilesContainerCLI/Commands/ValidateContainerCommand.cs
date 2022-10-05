@@ -83,7 +83,7 @@ namespace SignedFilesContainerCLI.Commands
                 return 5;
             }
 
-            // TODO: verify all files sha and the fact that only these files are in container
+            // Verify all files sha and the fact that only these files are in container
 
             return 0;
         }

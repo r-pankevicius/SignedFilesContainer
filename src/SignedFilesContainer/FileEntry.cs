@@ -23,8 +23,8 @@ namespace SignedFilesContainer
         public long Length { get; set; }
 
         /// <summary>
-        /// Syntax: {Hash method}:{Base64 encoded Hash string}
+        /// Base64 encoded SHA384 hash string.
         /// </summary>
-        public string HashString { get; set; } = "";
+        public string SHA384 { get; set; } = "";
     }
 }
