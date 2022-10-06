@@ -77,21 +77,19 @@ namespace SignedFilesContainerCLI.Commands
                 Directory.CreateDirectory(settings.OutputFolder);
             }
 
+            // TODO: extract (ContainerHelpers)
             string metainfoFolder = Path.Combine(settings.OutputFolder, ContainerHelpers.MetaInfoFolderName);
             if (!Directory.Exists(metainfoFolder))
                 Directory.CreateDirectory(metainfoFolder);
 
-            string fileListFile = Path.Combine(metainfoFolder, ContainerHelpers.ContentsFileName);
-            if (File.Exists(fileListFile))
-                File.Delete(fileListFile);
+            string contentsFile = Path.Combine(metainfoFolder, ContainerHelpers.ContentsFileName);
+            if (File.Exists(contentsFile))
+                File.Delete(contentsFile);
 
             CopyDirectory(settings.InputFolder, settings.OutputFolder, recursive: true);
             Directory.CreateDirectory(metainfoFolder);
 
-            var fileList = new Contents
-            {
-                Files = GetFileEntries(settings.OutputFolder).ToList()
-            };
+            Contents contents = ContainerHelpers.GetDirectoryContents(settings.OutputFolder);
 
             // TODO: extract
             var serializer = new XmlSerializer(typeof(Contents));
@@ -103,54 +101,17 @@ namespace SignedFilesContainerCLI.Commands
                 Indent = true
             });
 
-            serializer.Serialize(streamWriter, fileList);
-            string fileListXml = Encoding.UTF8.GetString(memoryStream.ToArray());
+            serializer.Serialize(streamWriter, contents);
+            string contentsXml = Encoding.UTF8.GetString(memoryStream.ToArray());
 
             var certificate = new X509Certificate2(File.ReadAllBytes(settings.Certificate), settings.Password);
-            string signedXml = CertificateHelpers.SignXml(fileListXml, certificate);
-            File.WriteAllText(fileListFile, signedXml);
+            string signedXml = CertificateHelpers.SignXml(contentsXml, certificate);
+            File.WriteAllText(contentsFile, signedXml);
 
             AnsiConsole.MarkupLine($"Created a signed container [green]{settings.OutputFolder}[/].");
             AnsiConsole.MarkupLine($"[magenta]You'll need a public key to validate it.[/] I hope you remember where it is.");
 
             return 0;
-        }
-
-        private static IEnumerable<FileEntry> GetFileEntries(string rootDir) =>
-            GetFileEntries(rootDir, rootDir);
-
-        private static IEnumerable<FileEntry> GetFileEntries(string rootDir, string currentDir)
-        {
-            var result = new List<FileEntry>();
-            GetFileHashes(result, rootDir, currentDir);
-            return result;
-        }
-
-        private static void GetFileHashes(List<FileEntry> result, string rootDir, string currentDir)
-        {
-            var dir = new DirectoryInfo(currentDir);
-
-            if (!dir.Exists)
-                throw new DirectoryNotFoundException($"Directory not found: {dir.FullName}");
-            
-            foreach (FileInfo fi in dir.GetFiles())
-            {
-                string hash = CertificateHelpers.GetSHA384FileHash(fi.FullName);
-                string relativePath = ContainerHelpers.GetRelativePathFrom(rootDir, fi.FullName);
-                result.Add(new FileEntry
-                {
-                    LocalPath = ContainerHelpers.ChangeToUnixPathSeparators(relativePath),
-                    Length = fi.Length,
-                    SHA384 = hash
-                });
-            }
-
-            DirectoryInfo[] dirs = dir.GetDirectories();
-            foreach (DirectoryInfo subDir in dirs)
-            {
-                string subdirectory = Path.Combine(currentDir, subDir.Name);
-                GetFileHashes(result, rootDir, subdirectory);
-            }
         }
 
         /// <summary>

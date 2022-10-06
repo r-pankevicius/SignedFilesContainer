@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Security.Cryptography.Xml;
 using System.Xml;
 using SignedFilesContainer;
+using System.Xml.Serialization;
 
 namespace SignedFilesContainerCLI.Commands
 {
@@ -43,11 +44,11 @@ namespace SignedFilesContainerCLI.Commands
                 return 1;
             }
 
-            string fileListXmlPath = Path.Combine(settings.InputFolder,
+            string contentsXmlPath = Path.Combine(settings.InputFolder,
                 ContainerHelpers.MetaInfoFolderName, ContainerHelpers.ContentsFileName);
-            if (!File.Exists(fileListXmlPath))
+            if (!File.Exists(contentsXmlPath))
             {
-                AnsiConsole.MarkupLine($"File listing metainfo file [red]{fileListXmlPath}[/] doesn't exist.");
+                AnsiConsole.MarkupLine($"File listing metainfo file [red]{contentsXmlPath}[/] doesn't exist.");
                 return 2;
             }
 
@@ -60,7 +61,7 @@ namespace SignedFilesContainerCLI.Commands
             string publicKeyString = File.ReadAllText(settings.PublicKey);
             byte[] publicKeyBytes = Convert.FromBase64String(publicKeyString);
 
-            var publicKey = PublicKey.CreateFromSubjectPublicKeyInfo(publicKeyBytes, out int bytesRead);
+            var publicKey = PublicKey.CreateFromSubjectPublicKeyInfo(publicKeyBytes, out _);
             RSA? rsaPublicKey = publicKey.GetRSAPublicKey();
             if (rsaPublicKey == null)
                 throw new InvalidOperationException("GetRSAPublicKey() failed");
@@ -70,22 +71,36 @@ namespace SignedFilesContainerCLI.Commands
                 PreserveWhitespace = true
             };
 
-            signedXmlDoc.Load(fileListXmlPath);
+            signedXmlDoc.Load(contentsXmlPath);
             
             // Verify the signature of the signed file list XML.
-            bool fileListIsValid = VerifyXml(signedXmlDoc, rsaPublicKey);
-            if (fileListIsValid)
+            bool contentsXmlIsValid = VerifyXml(signedXmlDoc, rsaPublicKey);
+            if (!contentsXmlIsValid)
             {
-                AnsiConsole.MarkupLine($"File list file signature is [green]valid[/].");
-            }
-            else
-            {
-                AnsiConsole.MarkupLine($"File list file signature is [red]INVALID[/].");
+                AnsiConsole.MarkupLine($"[red]INVALID[/]. File list file signature invalid.");
                 return 5;
             }
 
-            // Verify all files sha and the fact that only these files are in container
+            var serializer = new XmlSerializer(typeof(Contents));
+            using var stringReader = new StringReader(signedXmlDoc.OuterXml);
+            var declaredContents = (Contents?)serializer.Deserialize(stringReader);
+            if (declaredContents is null)
+                throw new InvalidOperationException("Deserialized contents xml to null");
 
+            // Verify all files sha and the fact that only these files are in container
+            var actualContents = ContainerHelpers.GetDirectoryContents(settings.InputFolder);
+            actualContents.Files.RemoveAll(fe => fe.LocalPath == ContainerHelpers.ContentsFileLocalPath);
+
+            if (actualContents.Files.Count != declaredContents.Files.Count)
+            {
+                AnsiConsole.MarkupLine(
+                    $"[red]INVALID[/]. File count mismatch. Declared: {declaredContents.Files.Count}, actual: {actualContents.Files.Count}.");
+                return 10;
+            }
+
+            // TODO: check all names/hashes match
+
+            AnsiConsole.MarkupLine($"[green]VALID[/]. Container is valid.");
             return 0;
         }
 
