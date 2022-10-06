@@ -26,9 +26,6 @@ namespace SignedFilesContainerCLI.Commands
     /// </remarks>
     internal class CreateContainerCommand : Command<CreateContainerCommand.Settings>
     {
-        internal const string MetaInfoFolderName = "META-INFO";
-        internal const string FileListFileName = "com.github.SignedFilesContainer.FileList.xml";
-
         public class Settings : CommandSettings
         {
             [Description("Input folder.")]
@@ -80,24 +77,24 @@ namespace SignedFilesContainerCLI.Commands
                 Directory.CreateDirectory(settings.OutputFolder);
             }
 
-            string metainfoFolder = Path.Combine(settings.OutputFolder, MetaInfoFolderName);
+            string metainfoFolder = Path.Combine(settings.OutputFolder, ContainerHelpers.MetaInfoFolderName);
             if (!Directory.Exists(metainfoFolder))
                 Directory.CreateDirectory(metainfoFolder);
 
-            string fileListFile = Path.Combine(metainfoFolder, FileListFileName);
+            string fileListFile = Path.Combine(metainfoFolder, ContainerHelpers.ContentsFileName);
             if (File.Exists(fileListFile))
                 File.Delete(fileListFile);
 
             CopyDirectory(settings.InputFolder, settings.OutputFolder, recursive: true);
             Directory.CreateDirectory(metainfoFolder);
 
-            var fileList = new FileList
+            var fileList = new Contents
             {
                 Files = GetFileEntries(settings.OutputFolder).ToList()
             };
 
             // TODO: extract
-            var serializer = new XmlSerializer(typeof(FileList));
+            var serializer = new XmlSerializer(typeof(Contents));
 
             using var memoryStream = new MemoryStream();
             var streamWriter = XmlWriter.Create(memoryStream, new()
@@ -138,11 +135,11 @@ namespace SignedFilesContainerCLI.Commands
             
             foreach (FileInfo fi in dir.GetFiles())
             {
-                string hash = GetSHA384FileHash(fi.FullName);
-                string relativePath = GetRelativePathFrom(rootDir, fi.FullName);
+                string hash = CertificateHelpers.GetSHA384FileHash(fi.FullName);
+                string relativePath = ContainerHelpers.GetRelativePathFrom(rootDir, fi.FullName);
                 result.Add(new FileEntry
                 {
-                    LocalPath = ChangeToUnixPathSeparators(relativePath),
+                    LocalPath = ContainerHelpers.ChangeToUnixPathSeparators(relativePath),
                     Length = fi.Length,
                     SHA384 = hash
                 });
@@ -154,36 +151,6 @@ namespace SignedFilesContainerCLI.Commands
                 string subdirectory = Path.Combine(currentDir, subDir.Name);
                 GetFileHashes(result, rootDir, subdirectory);
             }
-        }
-
-        private static string GetRelativePathFrom(string rootDir, string fullName)
-        {
-            string fullRootDir = Path.GetFullPath(rootDir);
-            string fullRootName = Path.GetFullPath(fullName);
-            if (fullRootName.Equals(fullRootDir))
-                return "";
-
-            if (!fullRootName.StartsWith(fullRootDir))
-                throw new InvalidOperationException($"File or directory '${fullName}' was expected to be under directory `{rootDir}`.");
-
-            return fullRootName[(fullRootDir.Length + 1)..^0];
-        }
-
-        private static string ChangeToUnixPathSeparators(string localPath) =>
-            localPath.Replace('\\', '/');
-
-        private static string GetSHA384FileHash(string pathToFile)
-        {
-            if (!File.Exists(pathToFile))
-                throw new FileNotFoundException($"File not found: `{pathToFile}`.");
-
-            byte[] fileBytes = File.ReadAllBytes(pathToFile);
-
-            // SHA384Managed is obsolete but RTFM means read that f***ing manual, and the manual is really f***ing:
-            // https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.sha384.create?view=net-6.0
-            SHA384 shaM = new SHA384Managed();
-            byte[] hashBytes = shaM.ComputeHash(fileBytes);
-            return Convert.ToBase64String(hashBytes);
         }
 
         /// <summary>

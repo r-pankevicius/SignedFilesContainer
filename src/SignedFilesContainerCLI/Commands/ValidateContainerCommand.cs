@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Security.Cryptography.Xml;
 using System.Xml;
+using SignedFilesContainer;
 
 namespace SignedFilesContainerCLI.Commands
 {
@@ -43,7 +44,7 @@ namespace SignedFilesContainerCLI.Commands
             }
 
             string fileListXmlPath = Path.Combine(settings.InputFolder,
-                CreateContainerCommand.MetaInfoFolderName, CreateContainerCommand.FileListFileName);
+                ContainerHelpers.MetaInfoFolderName, ContainerHelpers.ContentsFileName);
             if (!File.Exists(fileListXmlPath))
             {
                 AnsiConsole.MarkupLine($"File listing metainfo file [red]{fileListXmlPath}[/] doesn't exist.");

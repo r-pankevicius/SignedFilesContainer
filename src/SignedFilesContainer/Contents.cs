@@ -5,7 +5,7 @@ namespace SignedFilesContainer
     /// <summary>
     /// Container contents.
     /// </summary>
-    public class FileList
+    public class Contents
     {
         public List<FileEntry> Files { get; set; } = new();
     }

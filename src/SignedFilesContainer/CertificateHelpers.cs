@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Net;
-using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
@@ -10,7 +9,7 @@ using System.Xml;
 namespace SignedFilesContainer
 {
     /// <summary>
-    /// Static helper methods.
+    /// Helper methods to work with certificates.
     /// </summary>
     public static class CertificateHelpers
     {
@@ -110,6 +109,20 @@ namespace SignedFilesContainer
             originalXmlDoc.DocumentElement!.AppendChild(originalXmlDoc.ImportNode(xmlDigitalSignature, deep: true));
 
             return originalXmlDoc.OuterXml;
+        }
+
+        public static string GetSHA384FileHash(string pathToFile)
+        {
+            if (!File.Exists(pathToFile))
+                throw new FileNotFoundException($"File not found: `{pathToFile}`.");
+
+            byte[] fileBytes = File.ReadAllBytes(pathToFile);
+
+            // SHA384Managed is obsolete but RTFM means read that f***ing manual, and the manual is really f***ing:
+            // https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.sha384.create?view=net-6.0
+            SHA384 shaM = new SHA384Managed();
+            byte[] hashBytes = shaM.ComputeHash(fileBytes);
+            return Convert.ToBase64String(hashBytes);
         }
     }
 }
