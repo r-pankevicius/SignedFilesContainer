@@ -13,7 +13,7 @@ namespace SignedFilesContainer
     /// <summary>
     /// File entry in the container.
     /// </summary>
-    public class FileEntry
+    public record FileEntry
     {
         /// <summary>
         /// Local path using "/" separators.

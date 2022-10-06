@@ -94,11 +94,30 @@ namespace SignedFilesContainerCLI.Commands
             if (actualContents.Files.Count != declaredContents.Files.Count)
             {
                 AnsiConsole.MarkupLine(
-                    $"[red]INVALID[/]. File count mismatch. Declared: {declaredContents.Files.Count}, actual: {actualContents.Files.Count}.");
+                    $"[red]INVALID[/]. File count mismatch. Declared: {declaredContents.Files.Count}, found: {actualContents.Files.Count}.");
                 return 10;
             }
 
-            // TODO: check all names/hashes match
+            foreach (var actualFileEntry in actualContents.Files)
+            {
+                int idx = declaredContents.Files.IndexOf(actualFileEntry);
+                if (idx < 0)
+                {
+                    // TODO: compare what's different and display more informative msg
+                    AnsiConsole.MarkupLine(
+                        $"[red]INVALID[/]. The file {actualFileEntry.LocalPath} is different than declared.");
+                    return 11;
+                }
+
+                declaredContents.Files.RemoveAt(idx);
+            }
+
+            if (declaredContents.Files.Count > 0)
+            {
+                AnsiConsole.MarkupLine(
+                    "[red]ERROR[/]. Something went wrong.");
+                return 19;
+            }
 
             AnsiConsole.MarkupLine($"[green]VALID[/]. Container is valid.");
             return 0;
