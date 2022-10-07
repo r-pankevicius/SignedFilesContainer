@@ -2,7 +2,7 @@ launchSettings.json
 
 !placeholder
 
-sample-data/*.publicKey
+/src/sample-data/*.publicKey
 /src/sample-data/sample1/output
 /src/sample-data/cool-dry-place
 
