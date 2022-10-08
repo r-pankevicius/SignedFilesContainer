@@ -156,7 +156,7 @@ namespace SignedFilesContainerCLI.Commands
             }
 
             // Load the first <signature> node.
-            signedXml.LoadXml((XmlElement)nodeList[0]);
+            signedXml.LoadXml((XmlElement)nodeList[0]!);
 
             // Check the signature and return the result.
             return signedXml.CheckSignature(key);
