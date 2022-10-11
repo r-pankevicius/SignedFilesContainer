@@ -11,5 +11,9 @@ namespace SignedFilesContainer
         InputFolderDoesntExist = 1,
         CertificateDoesntExist = 2,
         OutputFolderExists = 3,
+
+        UnknownDirectory = 10,
+        DirectoryDoesntExist = 1,
+        OutputFileExists = 11,
     }
 }
