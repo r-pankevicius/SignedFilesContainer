@@ -8,5 +8,8 @@ namespace SignedFilesContainer
 {
     public enum SignedFilesContainerError
     {
+        InputFolderDoesntExist = 1,
+        CertificateDoesntExist = 2,
+        OutputFolderExists = 3,
     }
 }
