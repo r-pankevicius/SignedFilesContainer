@@ -86,6 +86,97 @@ namespace SignedFilesContainer
             File.WriteAllText(contentsFile, signedXml);
         }
 
+        public static void ValidateContainer(string inputFolder, string publicKeyFile)
+        {
+            if (!Directory.Exists(inputFolder))
+            {
+                throw new SignedFilesContainerException(
+                   SignedFilesContainerError.InputFolderDoesntExist,
+                   $"Input folder `{inputFolder}` doesn't exist.");
+            }
+
+            if (!File.Exists(publicKeyFile))
+            {
+                throw new SignedFilesContainerException(
+                   SignedFilesContainerError.PublicKeyFileDoesntExist,
+                   $"Public key file `{publicKeyFile}` doesn't exist.");
+            }
+
+            string contentsXmlPath = Path.Combine(inputFolder, MetaInfoFolderName, ContentsFileName);
+            if (!File.Exists(contentsXmlPath))
+            {
+                throw new SignedFilesContainerException(
+                   SignedFilesContainerError.ContentsFileDoesntExist,
+                   $"Contents file `{contentsXmlPath}` doesn't exist.");
+            }
+
+            string publicKeyString = File.ReadAllText(publicKeyFile);
+            byte[] publicKeyBytes = Convert.FromBase64String(publicKeyString);
+
+            var publicKey = PublicKey.CreateFromSubjectPublicKeyInfo(publicKeyBytes, out _);
+            RSA? rsaPublicKey = publicKey.GetRSAPublicKey();
+            if (rsaPublicKey is null)
+            {
+                throw new SignedFilesContainerException(
+                   SignedFilesContainerError.CouldNotCreateRSAPublicKey,
+                   $"Could not create RSA public key from file `{contentsXmlPath}`.");
+            }
+            var signedXmlDoc = new XmlDocument
+            {
+                PreserveWhitespace = true
+            };
+
+            signedXmlDoc.Load(contentsXmlPath);
+
+            // Verify the signature of the signed file list XML.
+            bool contentsXmlIsValid = CertificateHelpers.VerifyXml(signedXmlDoc, rsaPublicKey);
+            if (!contentsXmlIsValid)
+            {
+                throw new SignedFilesContainerException(
+                   SignedFilesContainerError.ContentsFileIsInvalid,
+                   $"Contents file `{contentsXmlPath}` is invalid. Signature is incorrect.");
+            }
+
+            var serializer = new XmlSerializer(typeof(Contents));
+            using var stringReader = new StringReader(signedXmlDoc.OuterXml);
+            var declaredContents = (Contents?)serializer.Deserialize(stringReader);
+            if (declaredContents is null)
+            {
+                throw new SignedFilesContainerException(
+                   SignedFilesContainerError.ContentsFileIsInvalid,
+                   $"Contents file `{contentsXmlPath}` is invalid. It doesn't match expected format.");
+            }
+
+            // Verify all files sha and the fact that only these files are in container
+            var actualContents = GetDirectoryContents(inputFolder);
+            actualContents.Files.RemoveAll(fe => fe.LocalPath == ContentsFileLocalPath);
+
+            if (actualContents.Files.Count != declaredContents.Files.Count)
+            {
+                throw new SignedFilesContainerException(
+                   SignedFilesContainerError.FileCountMismatch,
+                   $"File count mismatch. Declared: {declaredContents.Files.Count}, found: {actualContents.Files.Count}.");
+            }
+
+            foreach (var actualFileEntry in actualContents.Files)
+            {
+                int idx = declaredContents.Files.IndexOf(actualFileEntry);
+                if (idx < 0)
+                {
+                    throw new SignedFilesContainerException(
+                       SignedFilesContainerError.FileIsDifferent,
+                       $"The file {actualFileEntry.LocalPath} is different than declared.");
+                }
+
+                declaredContents.Files.RemoveAt(idx);
+            }
+
+            if (declaredContents.Files.Count > 0)
+            {
+                throw new InvalidOperationException("Something went wrong.");
+            }
+        }
+
         public static string GetRelativePathFrom(string rootDir, string fullName)
         {
             string fullRootDir = Path.GetFullPath(rootDir);
