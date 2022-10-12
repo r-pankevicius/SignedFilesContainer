@@ -25,7 +25,7 @@ namespace SignedFilesContainerCLI.Commands
             public string? Name { get; set; }
 
             [CommandOption("--password")]
-            public string Password { get; set; } = "";
+            public string? Password { get; set; } = "";
 
             [Description("DNS name, I don't know what it is for.")]
             [CommandOption("--dns-name")]

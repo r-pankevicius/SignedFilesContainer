@@ -15,9 +15,9 @@ namespace SignedFilesContainer
     {
         public static void CreateCertificate(
             string outputFile,
-            string certificateName,
-            string password,
-            string dnsName,
+            string? certificateName,
+            string? password,
+            string? dnsName,
             bool overwrite)
         {
             string extension = Path.GetExtension(outputFile);
@@ -65,8 +65,8 @@ namespace SignedFilesContainer
         }
 
         private static void CreateSelfSignedX509Certificate(
-     string outputCertificateFilePath, string outputPublicKeyPath,
-     string certificateName, string password, string? dnsName)
+            string outputCertificateFilePath, string outputPublicKeyPath,
+            string certificateName, string? password, string? dnsName)
         {
             // Export self signed X509 certificate to pfx
             var certificateToExport = CreateSelfSignedServerCertificate(certificateName, password, dnsName);
@@ -85,9 +85,9 @@ namespace SignedFilesContainer
 
         // https://creativecommons.org/licenses/by-sa/4.0/
         // https://stackoverflow.com/a/50138133/1175698
-        private static X509Certificate2 CreateSelfSignedServerCertificate1(
+        private static X509Certificate2 CreateSelfSignedServerCertificate(
             string certificateName,
-            string password,
+            string? password,
             string? dnsName)
         {
             if (string.IsNullOrEmpty(certificateName))
