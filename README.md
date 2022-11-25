@@ -1,4 +1,4 @@
-# Signed Files Container
+# Signed Files Container 🇺🇦✌️
 
 The .net toolset and a library to digitally sign and verify file containers: folders in file system or zip files.
 
